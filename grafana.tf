@@ -9,4 +9,7 @@ resource "docker_container" "grafana" {
   networks_advanced {
     name = docker_network.monitor_net.name
   }
+  networks_advanced {
+    name = docker_network.app_net.name
+  }
 }

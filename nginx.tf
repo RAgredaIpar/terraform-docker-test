@@ -8,6 +8,9 @@ resource "docker_container" "app1" {
   networks_advanced {
     name = docker_network.app_net.name
   }
+  networks_advanced {
+    name = docker_network.persistence_net.name
+  }
 }
 resource "docker_container" "app2" {
   name  = "app2"
@@ -19,6 +22,9 @@ resource "docker_container" "app2" {
   networks_advanced {
     name = docker_network.app_net.name
   }
+  networks_advanced {
+    name = docker_network.persistence_net.name
+  }
 }
 resource "docker_container" "app3" {
   name  = "app3"
@@ -29,5 +35,8 @@ resource "docker_container" "app3" {
   }
   networks_advanced {
     name = docker_network.app_net.name
+  }
+  networks_advanced {
+    name = docker_network.persistence_net.name
   }
 }
