@@ -1,9 +1,9 @@
 resource "docker_container" "grafana" {
-  name  = "grafana"
+  name  = "grafana-${terraform.workspace}"
   image = "grafana/grafana:main-ubuntu"
   ports {
     internal = 3000
-    external = var.grafana_external_port
+    external = var.grafana_external_port[terraform.workspace]
   }
 
   networks_advanced {
