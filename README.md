@@ -1,7 +1,8 @@
 # Ambiente de Desarrollo con Terraform y Docker
 
 Este proyecto crea un entorno de desarrollo (DEV) usando [Terraform](https://www.terraform.io/) y [Docker](https://www.docker.com/).  
-El objetivo es que, con un solo comando, se levanten todos los servicios necesarios para probar aplicaciones en un ambiente local.
+El objetivo es que, con unos cuantos comandos, se levanten todos los servicios necesarios para probar aplicaciones en un ambiente local.
+Finalmente utilizando workspaces (dev, qa, prod) reutilizamos el mismo codigo para estados separados.
 
 ---
 
@@ -10,6 +11,7 @@ El objetivo es que, con un solo comando, se levanten todos los servicios necesar
 Cuando lo ejecutes, tendrás funcionando lo siguiente:
 
 - **3 aplicaciones web (Nginx)**  
+  **dev/**
   - app1 → [http://localhost:8081](http://localhost:8081)  
   - app2 → [http://localhost:8082](http://localhost:8082)  
   - app3 → [http://localhost:8083](http://localhost:8083)  
@@ -45,33 +47,60 @@ Antes de empezar asegúrate de tener instalado:
 ---
 
 ## Cómo levantar el proyecto
+En este proyecto, hemos implementado workspaces (dev, qa y prod)
 
 1. Clona este repositorio en tu computadora:
    ```bash
    git clone https://github.com/RAgredaIpar/terraform-docker-test.git
+   cd terraform-docker-test
 2. Inicializa Terraform:
-    ```bash
+    ```
     terraform init
-3. Revisa qué se va a crear:
+3. Si ya hubieran recursos en "default", es mejor bajarlos:
     ```bash
+    terraform workspace show      # respuesta -> "default"
+    terraform destroy
+4. Crear / seleccionar un workspace y "apply"
+    ```bash
+    terraform workspace new dev
+    terraform workspace select dev
+    terraform workspace show      # respuesta -> "dev"
+5. Revisa qué se va a crear:
+    ```
     terraform plan
-4. Aplica los cambios
-    ```bash
+6. Aplica los cambios
+    ```
     terraform apply
 ## Configuración
 
-Si quieres cambiar el puerto de Grafana (por defecto 3000), edita el archivo terraform.tfvars:
+Si quieres cambiar el puerto de Grafana (en dev = 3000), edita el archivo terraform.tfvars en el workspace que desees trabajar:
 
 ```bash
-    grafana_external_port = 3000
+grafana_external_port = {
+  dev  = 3000
+  ...
+}
 ```
 
 Por ejemplo, si quieres usar el puerto 4000:
 
 ```bash
-    grafana_external_port = 4000
+grafana_external_port = {
+  dev  = 3001
+  ...
+}
 ```
 
+## Verificacion rapida
+Estado general
+```bash
+docker ps
+```
+Redis responde correctamente
+```bash
+docker exec redis redis-cli ping
+```
+Si funciona, respondera -> PONG
 
 ---
 ## Comprobar conexion entre contenedores
@@ -81,7 +110,7 @@ Para comprobar desde grafana
 docker exec -it grafana sh
 ```
 Una vez ingreses a la consola del contenedor de grafana ejecuta lo siguiente (En este comando puedes utilizar app1, app2 y app3):
-```bash
+```
 curl http://app1
 ```
 
@@ -90,13 +119,13 @@ Para comprobar desde app1, app2, app3 la conexion con las bases de datos y grafa
 docker exec -it app1 sh
 ```
 - Para postgres, redis y grafana
-  ```bash
+  ```
   ping postgres
   ```
-  ```bash
+  ```
   ping redis
   ```
-  ```bash
+  ```
   ping grafana
   ```
 
