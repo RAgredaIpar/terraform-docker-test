@@ -8,6 +8,10 @@
     web_conf_host: "{{ project_root }}/host_volumes/web"
     nginx_container: "nginx_proxy"
 
+    app1_web: "{{ project_root }}/host_volumes/app1_web"
+    app2_web: "{{ project_root }}/host_volumes/app2_web"
+    app3_web: "{{ project_root }}/host_volumes/app3_web"
+
   tasks:
     - name: Crear las carpetas
       ansible.builtin.file:
@@ -15,8 +19,11 @@
         state: directory
         mode: "0755"
       loop:
-        - "{{nginx_conf_host}}"
-        - "{{web_conf_host}}"
+        - "{{ nginx_conf_host }}"
+        - "{{ web_conf_host }}"
+        - "{{ app1_web }}"
+        - "{{ app2_web }}"
+        - "{{ app3_web }}"
     - name: Copiar la pagina web
       ansible.builtin.copy:
         src: "files/index.html"
@@ -28,6 +35,31 @@
         src: "templates/nginx.conf"
         dest: "{{nginx_conf_host}}/default.conf"
         mode: "0644"
+
+    - name: Renderizar index para app1
+      ansible.builtin.template:
+        src: "templates/app_index.html.j2"
+        dest: "{{ app1_web }}/index.html"
+        mode: "0644"
+      vars:
+        app_name: "app1"
+
+    - name: Renderizar index para app2
+      ansible.builtin.template:
+        src: "templates/app_index.html.j2"
+        dest: "{{ app2_web }}/index.html"
+        mode: "0644"
+      vars:
+        app_name: "app2"
+
+    - name: Renderizar index para app3
+      ansible.builtin.template:
+        src: "templates/app_index.html.j2"
+        dest: "{{ app3_web }}/index.html"
+        mode: "0644"
+      vars:
+        app_name: "app3"
+
     - name: Reiniciar contenedor si fallo la recarga
       ansible.builtin.command: >
         docker exec {{nginx_container}} nginx -s reload
