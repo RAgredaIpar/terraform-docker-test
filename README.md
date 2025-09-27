@@ -1,6 +1,6 @@
-# Ambiente de Desarrollo con Terraform y Docker
+# Ambiente de Desarrollo con Terraform , Docker y Ansible
 
-Este proyecto crea un entorno de desarrollo (DEV) usando [Terraform](https://www.terraform.io/) y [Docker](https://www.docker.com/).  
+Este proyecto crea un entorno de desarrollo (DEV) usando [Terraform](https://www.terraform.io/), [Docker](https://www.docker.com/) y Ansible.  
 El objetivo es que, con unos cuantos comandos, se levanten todos los servicios necesarios para probar aplicaciones en un ambiente local.
 Finalmente utilizando workspaces (dev, qa, prod) reutilizamos el mismo codigo para estados separados.
 
@@ -10,11 +10,14 @@ Finalmente utilizando workspaces (dev, qa, prod) reutilizamos el mismo codigo pa
 
 Cuando lo ejecutes, tendrás funcionando lo siguiente:
 
-- **3 aplicaciones web (Nginx)**  
-  **dev/**
-  - app1 → [http://localhost:8081](http://localhost:8081)  
-  - app2 → [http://localhost:8082](http://localhost:8082)  
-  - app3 → [http://localhost:8083](http://localhost:8083)  
+- **Balanceador Nginx (proxy) con round-robin**  
+  - dev → `http://localhost:5001/`  
+  - qa  → `http://localhost:5002/`  
+  - prod → `http://localhost:5003/`  
+
+- **3 aplicaciones web (Nginx) detrás del proxy**  
+  - Las apps (`app1`, `app2`, `app3`) **no exponen puertos al host**.  
+  - El proxy reparte tráfico entre ellas dentro de la red interna.
 
 - **Base de datos PostgreSQL**  
   - Usuario: `admin_user`  
@@ -40,11 +43,27 @@ Cuando lo ejecutes, tendrás funcionando lo siguiente:
 Antes de empezar asegúrate de tener instalado:
 
 1. [Docker](https://docs.docker.com/get-docker/)  
-   (necesario para ejecutar los contenedores)
 2. [Terraform](https://developer.hashicorp.com/terraform/downloads)  
-   (necesario para automatizar la creación de los contenedores)
+3. [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) si quieres renderizar la config del proxy desde `ansible/`
 
 ---
+
+## Instalacion de ANSIBLE
+
+- Si utilizas windows descarga de la Microsoft Store ubuntu 
+
+![alt text](image.png)
+
+  Una vez instalado eliges tu usuario y contraseña. 
+  ``` bash
+  sudo apt update
+  sudo apt install software-properties-common
+  sudo add-apt-repository --yes --update ppa:ansible/ansible
+  sudo apt install ansible
+  ```
+---
+
+
 
 ## Cómo levantar el proyecto
 En este proyecto, hemos implementado workspaces (dev, qa y prod)
@@ -55,6 +74,7 @@ En este proyecto, hemos implementado workspaces (dev, qa y prod)
    cd terraform-docker-test
 2. Inicializa Terraform:
     ```
+    cd terraform
     terraform init
 3. Si ya hubieran recursos en "default", es mejor bajarlos:
     ```bash
@@ -71,6 +91,11 @@ En este proyecto, hemos implementado workspaces (dev, qa y prod)
 6. Aplica los cambios
     ```
     terraform apply
+
+7. Renderiza la configuracion de ansible
+    ```
+    cd ansible
+    ansible-playbook -i ansible/inventory.ini ansible/playbook.yaml
 ## Configuración
 
 Si quieres cambiar el puerto de Grafana (en dev = 3000), edita el archivo terraform.tfvars en el workspace que desees trabajar:
@@ -78,16 +103,25 @@ Si quieres cambiar el puerto de Grafana (en dev = 3000), edita el archivo terraf
 ```bash
 grafana_external_port = {
   dev  = 3000
-  ...
+  qa   = 4000
+  prod = 5000
 }
 ```
 
-Por ejemplo, si quieres usar el puerto 4000:
+Por ejemplo, si quieres usar el puerto 3001:
 
 ```bash
 grafana_external_port = {
   dev  = 3001
   ...
+}
+```
+Lo mismo aplica para el siguiente:
+```bash
+nginx_proxy_external_port = {
+  dev  = 5001
+  qa   = 5002
+  prod = 5003
 }
 ```
 
@@ -130,3 +164,17 @@ docker exec -it app1 sh
   ```
 
 Aparecerán los paquetes recibidos por parte de los servicios.
+
+---
+## Verificación rápida de servicios
+- Estado general
+```bash
+docker ps
+```
+- Proxy (round-robin)
+```bash
+curl http://localhost:5001/
+curl http://localhost:5001/
+curl http://localhost:5001/
+```
+Deberías ver alternar el contenido servido por app1, app2, app3. Al inicio se repetirán
