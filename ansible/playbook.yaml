@@ -1,0 +1,36 @@
+---
+- name: Configurar NGINX como proxy para tres rutas
+  hosts: localhost
+  gather_facts: false
+  vars:
+    project_root: "{{ playbook_dir }}/.."
+    nginx_conf_host: "{{ project_root }}/host_volumes/nginx_conf"
+    web_conf_host: "{{ project_root }}/host_volumes/web"
+    nginx_container: "nginx_proxy"
+
+  tasks:
+    - name: Crear las carpetas
+      ansible.builtin.file:
+        path: "{{item}}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{nginx_conf_host}}"
+        - "{{web_conf_host}}"
+    - name: Copiar la pagina web
+      ansible.builtin.copy:
+        src: "files/index.html"
+        dest: "{{web_conf_host}}/index.html"
+        mode: "0644"
+
+    - name: Copiar la config de NGINX
+      ansible.builtin.copy:
+        src: "templates/nginx.conf"
+        dest: "{{nginx_conf_host}}/default.conf"
+        mode: "0644"
+    - name: Reiniciar contenedor si fallo la recarga
+      ansible.builtin.command: >
+        docker exec {{nginx_container}} nginx -s reload
+      register: reload_result
+      changed_when: reload_result.rc == 0
+      failed_when: false
